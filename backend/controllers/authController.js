@@ -1,21 +1,19 @@
 import User from '../models/User.js';
 import jwt from 'jsonwebtoken';
 
-// Helper function to generate token and send secure cookie
 const sendTokenResponse = (user, statusCode, res) => {
-    // Generate JWT payload
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
         expiresIn: process.env.JWT_EXPIRE || '30d'
     });
 
     const options = {
-        expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 Days
-        httpOnly: true, // Prevents XSS
+        expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), 
+        httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict'
     };
 
-    user.password = undefined; // Remove password from response
+    user.password = undefined;
 
     res.status(statusCode).cookie('token', token, options).json({
         success: true,
@@ -23,8 +21,6 @@ const sendTokenResponse = (user, statusCode, res) => {
     });
 };
 
-// @desc    Register a user
-// @route   POST /api/v1/auth/register
 export const register = async (req, res, next) => {
     try {
         const { name, email, password } = req.body;
@@ -37,12 +33,10 @@ export const register = async (req, res, next) => {
         const user = await User.create({ name, email, password });
         sendTokenResponse(user, 201, res);
     } catch (error) {
-        next(error); // This will now correctly pass to the global error handler
+        next(error); 
     }
 };
 
-// @desc    Login user
-// @route   POST /api/v1/auth/login
 export const login = async (req, res, next) => {
     try {
         const { email, password } = req.body;
@@ -62,19 +56,18 @@ export const login = async (req, res, next) => {
     }
 };
 
-// @desc    Log user out / clear cookie
-// @route   POST /api/v1/auth/logout
 export const logout = async (req, res, next) => {
+    // FIX: Match strict creation options to force browser deletion
     res.cookie('token', 'none', {
         expires: new Date(Date.now() + 10 * 1000),
-        httpOnly: true
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict'
     });
 
     res.status(200).json({ success: true, data: {} });
 };
 
-// @desc    Get current logged in user
-// @route   GET /api/v1/auth/me
 export const getMe = async (req, res, next) => {
     try {
         const user = await User.findById(req.user.id);

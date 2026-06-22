@@ -1,13 +1,13 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 
-// Protect routes - Verifies the JWT
 export const protect = async (req, res, next) => {
     let token;
 
-    // Check for token in cookies
     if (req.cookies.token) {
         token = req.cookies.token;
+    } else if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+        token = req.headers.authorization.split(' ')[1]; // Fallback for mobile apps/Postman
     }
 
     if (!token || token === 'none') {
@@ -15,18 +15,20 @@ export const protect = async (req, res, next) => {
     }
 
     try {
-        // Verify token logic
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        
-        // Attach user to request object
         req.user = await User.findById(decoded.id);
+
+        // FIX: The Ghost User Check
+        if (!req.user) {
+            return res.status(401).json({ success: false, message: 'User associated with this token no longer exists' });
+        }
+
         next();
     } catch (error) {
         return res.status(401).json({ success: false, message: 'Session invalid or expired' });
     }
 };
 
-// Grant access to specific roles
 export const authorize = (...roles) => {
     return (req, res, next) => {
         if (!roles.includes(req.user.role)) {

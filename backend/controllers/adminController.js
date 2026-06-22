@@ -1,9 +1,6 @@
 import Review from '../models/Review.js';
 import Product from '../models/Product.js';
 
-// @desc    Get all unverified reviews (The Moderation Queue)
-// @route   GET /api/v1/admin/queue
-// @access  Private/Admin
 export const getVerificationQueue = async (req, res, next) => {
     try {
         const pendingReviews = await Review.find({ isVerified: false })
@@ -17,23 +14,17 @@ export const getVerificationQueue = async (req, res, next) => {
     }
 };
 
-// @desc    Approve a review (Grant Verified Status)
-// @route   PUT /api/v1/admin/verify/:reviewId
-// @access  Private/Admin
 export const verifyReview = async (req, res, next) => {
     try {
-        const review = await Review.findByIdAndUpdate(
-            req.params.reviewId,
-            { isVerified: true },
-            { returnDocument: 'after', runValidators: true }
-        );
+        const review = await Review.findById(req.params.reviewId);
 
         if (!review) {
             return res.status(404).json({ success: false, message: 'Review not found' });
         }
 
-        // Note: In a fully scaled system, we would re-run the aggregate math here 
-        // to give this verified review a 1.5x multiplier in the Wilson Score.
+        // FIX: Mutate and save. This forces the Review.js post('save') aggregation hook to fire!
+        review.isVerified = true;
+        await review.save(); 
 
         res.status(200).json({ success: true, data: review });
     } catch (error) {
@@ -41,9 +32,6 @@ export const verifyReview = async (req, res, next) => {
     }
 };
 
-// @desc    Reject and delete a review
-// @route   DELETE /api/v1/admin/reject/:reviewId
-// @access  Private/Admin
 export const rejectReview = async (req, res, next) => {
     try {
         const review = await Review.findById(req.params.reviewId);
@@ -52,6 +40,7 @@ export const rejectReview = async (req, res, next) => {
             return res.status(404).json({ success: false, message: 'Review not found' });
         }
 
+        // Trigger the deleteOne hook to recalculate math if needed
         await review.deleteOne();
 
         res.status(200).json({ success: true, data: {} });
