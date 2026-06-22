@@ -7,7 +7,7 @@ import connectDB from './config/db.js';
 import authRoutes from './routes/authRoutes.js';
 import productRoutes from './routes/productRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
-// import reviewRoutes from './routes/reviewRoutes.js';
+import reviewRoutes from './routes/reviewRoutes.js';
 
 // Load Environment Variables
 dotenv.config();
@@ -27,7 +27,7 @@ app.use(cookieParser()); // Parse secure HttpOnly cookies
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/products', productRoutes);
 app.use('/api/v1/admin', adminRoutes);
-// app.use('/api/v1/reviews', reviewRoutes);
+app.use('/api/v1/reviews', reviewRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {
